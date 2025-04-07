@@ -12,28 +12,40 @@ import { connectDB } from "./config/db.js";
 import { protectRoute } from "./middleware/protectRoute.js";
 
 const app = express();
-
 const PORT = ENV_VARS.PORT;
 
 const __dirname = path.resolve();
 
-app.use(express.json()); // will allow us to parse req.body
+// Middleware
+app.use(express.json());
 app.use(cookieParser());
 
+// Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/movie", protectRoute, movieRoutes);
 app.use("/api/v1/tv", protectRoute, tvRoutes);
 app.use("/api/v1/search", protectRoute, searchRoutes);
 
+// Serve frontend (for production)
 if (ENV_VARS.NODE_ENV === "production") {
-	app.use(express.static(path.join(__dirname, "/frontend/dist")));
+  app.use(express.static(path.join(__dirname, "/frontend/dist")));
 
-	app.get("*", (req, res) => {
-		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-	});
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+  });
 }
 
-app.listen(PORT, () => {
-	console.log("Server started at http://localhost:" + PORT);
-	connectDB();
-});
+// Start Server After DB Connected
+const startServer = async () => {
+  try {
+    await connectDB(); // Pastikan DB connect dulu
+    app.listen(PORT, () => {
+      console.log("✅ Server started at http://localhost:" + PORT);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server: ", err.message);
+    process.exit(1); // Exit jika gagal konek DB
+  }
+};
+
+startServer();
